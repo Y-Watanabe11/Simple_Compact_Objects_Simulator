@@ -40,7 +40,7 @@
 1. Clone the repository  
     ```bash
     git clone https://github.com/username/compact-objects-simulator.git
-    cd compact-objects-simulator
+    cd Simple_Compact_Objects-Simulator
     ```
 2. Run a local web server  
     ```bash
@@ -108,7 +108,7 @@
 1. このリポジトリをクローン  
     ```bash
     git clone https://github.com/username/compact-objects-simulator.git
-    cd compact-objects-simulator
+    cd Simple_Compact-Objects-Simulator
     ```
 2. 任意のローカル Web サーバーで実行  
     ```bash
