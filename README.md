@@ -60,6 +60,12 @@
 
 ---
 
+## Future Enhancements
+- Kerr BH: spin-dependent ISCO and efficiency  
+- Multi-temperature blackbody disk spectrum  
+- Higher-order PN & IMRPhenom-based GW models  
+- Detector sensitivity overlays & SNR estimates  
+
 # Simple Compact Objects Simulator
 
 ## 概要
@@ -128,11 +134,5 @@
 - 高次 PN や IMRPhenom 系モデルでの重力波生成  
 - 検出器感度曲線の重ね合わせと SNR 概算  
 
-
 ---
 
-## Future Enhancements
-- Kerr BH: spin-dependent ISCO and efficiency  
-- Multi-temperature blackbody disk spectrum  
-- Higher-order PN & IMRPhenom-based GW models  
-- Detector sensitivity overlays & SNR estimates  
