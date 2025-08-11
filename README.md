@@ -39,8 +39,8 @@
 ## Installation & Usage
 1. Clone the repository  
     ```bash
-    git clone https://github.com/username/compact-objects-simulator.git
-    cd Simple_Compact_Objects-Simulator
+    git clone https://github.com/Y-Watanabe11/Simple_Compact_Objects_Simulator.git
+    cd Simple_Compact_Objects_Simulator
     ```
 2. Run a local web server  
     ```bash
@@ -48,7 +48,7 @@
     ```
 3. Open in your browser  
     ```
-    http://localhost:8000
+    [http://localhost:8000](http://localhost:8000/compact_objects_sim_precise.html)
     ```
 
 ---
