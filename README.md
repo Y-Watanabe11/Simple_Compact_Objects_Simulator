@@ -107,8 +107,8 @@
 ## インストール & 実行方法
 1. このリポジトリをクローン  
     ```bash
-    git clone https://github.com/username/compact-objects-simulator.git
-    cd Simple_Compact-Objects-Simulator
+    git clone https://github.com/Y-Watanabe11/Simple_Compact_Objects_Simulator.git
+    cd Simple_Compact_Objects_Simulator
     ```
 2. 任意のローカル Web サーバーで実行  
     ```bash
@@ -116,7 +116,7 @@
     ```
 3. ブラウザで以下にアクセス  
     ```
-    http://localhost:8000
+    [http://localhost:8000](http://localhost:8000/compact_objects_sim_precise.html)
     ```
 
 ---
