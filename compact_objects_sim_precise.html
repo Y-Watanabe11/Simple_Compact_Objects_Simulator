@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Compact Objects Astrophysics Simulator — 精密計算付き（レイアウト改）</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Monaco','Courier New',monospace;
+      background: linear-gradient(135deg,#0a0a0a,#1a0a2e,#2d1b69,#0f0f23);
+      color: #fff; overflow: hidden;
+    }
+    #container { position: relative; width: 100vw; height: 100vh; }
+
+    .panel {
+      position: absolute;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid;
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 0 25px rgba(0,255,255,0.2);
+    }
+
+    #control-panel {
+      top: 20px; left: 20px; width: 380px;
+      border-color: #00ffff; max-height: 72vh; overflow-y: auto;
+    }
+
+    /* 右側は縦にスタック：上に物理、下に波形（同一パネル内） */
+    #physics-panel {
+      top: 20px; right: 20px; width: 360px;
+      border-color: #ff6b6b;
+      max-height: 72vh; overflow-y: auto;
+    }
+
+    /* 物理パネル内に置く波形サブパネル */
+    #waveform-subpanel {
+      margin-top: 10px;
+      border-top: 2px solid #00ff88;
+      padding-top: 10px;
+    }
+    #waveform-subpanel .section-title { border-color: #00ff88; }
+    #waveform-canvas {
+      display: block; width: 100%; height: auto;
+      background: rgba(0,0,0,0.82);
+      border: 1px solid #00ff88; border-radius: 8px;
+    }
+    #waveform-desc { font-size: 0.8rem; opacity: 0.95; margin-top: 8px; }
+
+    /* イベントログは最下段に横いっぱい */
+    #event-panel {
+      left: 20px; right: 20px; bottom: 12px;
+      width: auto; height: 26vh;
+      border-color: #ffa500; overflow-y: auto; z-index: 5;
+    }
+
+    .section-title {
+      font-size: 1.1rem; font-weight: 800;
+      margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid;
+      text-transform: uppercase;
+    }
+    .control-group { margin-bottom: 14px; padding: 10px; background: rgba(255,255,255,0.06); border-radius: 8px; }
+    label { display: block; margin-bottom: 6px; font-weight: 700; font-size: 0.9rem; }
+    input[type="range"], input[type="number"] { width: 100%; margin-bottom: 6px; accent-color: #00ffff; }
+    select { width: 100%; padding: 8px; background: rgba(0,0,0,0.7); border: 1px solid #00ffff; border-radius: 5px; color: white; }
+    button {
+      background: linear-gradient(45deg,#00ffff,#ff6b6b);
+      border: none; color: white; padding: 10px 12px; border-radius: 6px; cursor: pointer;
+      font-weight: 700; margin: 3px; transition: all 0.2s; font-size: 0.9rem;
+    }
+    button:hover { transform: scale(1.04); box-shadow: 0 0 14px rgba(0,255,255,0.4); }
+    .physics-data { background: rgba(255,255,255,0.08); padding: 10px; margin: 8px 0; border-radius: 6px; font-size: 0.85rem; line-height: 1.45; }
+    .event-log { font-size: 0.8rem; line-height: 1.3; padding: 8px; margin: 4px 0; border-left: 3px solid #ffa500; background: rgba(255,165,0,0.1); }
+    .event-time { color: #ffa500; font-weight: 800; }
+    #title-overlay { position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%); text-align: center; z-index: 10; pointer-events: none; }
+    .title-main { font-size: 3.2rem; font-weight: 900; background: linear-gradient(45deg,#00ffff,#ff6b6b,#ffa500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 40px rgba(0,255,255,0.7); margin-bottom: 8px; opacity: 0.9; }
+    .title-sub { font-size: 1.2rem; color: #ccc; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    .cyan { color: #00ffff; } .red { color: #ff6b6b; } .orange { color: #ffa500; } .green { color: #00ff88; }
+    .detector-status { display: flex; align-items: center; margin: 5px 0; }
+    .status-indicator { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; animation: pulse 2s infinite; }
+    .active { background: #00ff88; } .inactive { background: #666; }
+    @keyframes pulse { 0%,100% {opacity: 1;} 50% {opacity: 0.5;} }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    /* 低い画面や狭い画面への調整 */
+    @media (max-height: 840px) {
+      #event-panel { height: 24vh; bottom: 8px; }
+      #physics-panel { max-height: 68vh; }
+    }
+    @media (max-width: 1100px) {
+      /* 幅が狭い場合はログを下に、右パネルはそのまま */
+      #control-panel { width: 340px; }
+      #physics-panel { width: 330px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="title-overlay">
+      <div class="title-main">COMPACT OBJECTS</div>
+      <div class="title-sub">Astrophysics Simulator — 精密計算版</div>
+    </div>
+
+    <div class="panel" id="control-panel">
+      <h3 class="section-title cyan">シミュレーション制御</h3>
+
+      <div class="control-group">
+        <label>コンパクト天体タイプ</label>
+        <select id="objectType">
+          <option value="blackhole">ブラックホール + 降着円盤</option>
+          <option value="neutronstar">中性子星パルサー</option>
+          <option value="whitedwarf">白色矮星</option>
+          <option value="merger">連星中性子星合体（厳密GW）</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>総質量 (太陽質量) <span id="massValue" class="mono">10.0 M☉</span></label>
+        <input type="range" id="mass" min="0.5" max="50" value="10" step="0.5">
+        <small>※ 合体では各星の質量 = 総質量/2 と仮定</small>
+      </div>
+
+      <div class="control-group">
+        <label>降着率 (M☉/年) <span id="accretionValue" class="mono">0.10</span></label>
+        <input type="range" id="accretionRate" min="0" max="1" value="0.1" step="0.01">
+        <div class="grid">
+          <div>
+            <label>放射効率 η <span id="etaValue" class="mono">0.10</span></label>
+            <input type="range" id="radiativeEff" min="0.01" max="0.42" value="0.10" step="0.01">
+          </div>
+          <div>
+            <label>ディスク内縁 r_in (×GM/c²) <span id="rinValue" class="mono">6.0</span></label>
+            <input type="range" id="rinFactor" min="1" max="9" value="6" step="0.5">
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>自転周期 (ms) <span id="spinValue" class="mono">33 ms</span></label>
+        <input type="range" id="spinPeriod" min="1" max="1000" value="33" step="1">
+      </div>
+
+      <div class="control-group">
+        <label>磁場強度 (10¹² G) <span id="magneticValue" class="mono">10.0</span></label>
+        <input type="range" id="magneticField" min="0.1" max="100" value="10" step="0.1">
+      </div>
+
+      <div class="control-group">
+        <label>（合体用）距離 D (Mpc) <span id="distValue" class="mono">40</span></label>
+        <input type="range" id="distanceMpc" min="1" max="500" value="40" step="1">
+      </div>
+
+      <div class="control-group">
+        <button id="startSimulation">シミュレーション開始</button>
+        <button id="stopSimulation">停止</button>
+        <button id="resetSimulation">リセット</button>
+      </div>
+
+      <div class="control-group">
+        <button id="generateGRB">ガンマ線バースト発生</button>
+        <button id="detectGW">重力波（チャープ）再計算</button>
+        <button id="exportData">データ出力</button>
+      </div>
+    </div>
+
+    <div class="panel" id="physics-panel">
+      <h3 class="section-title red">物理パラメータ（厳密）</h3>
+      <div id="physics-data"></div>
+
+      <h3 class="section-title red">検出器状態</h3>
+      <div class="detector-status"><div class="status-indicator active"></div><span>LIGO (重力波)</span></div>
+      <div class="detector-status"><div class="status-indicator active"></div><span>Fermi (γ線)</span></div>
+      <div class="detector-status"><div class="status-indicator active"></div><span>NICER (X線)</span></div>
+
+      <!-- 物理パネルの下に波形を内包 -->
+      <div id="waveform-subpanel">
+        <h3 class="section-title green">重力波チャープ波形</h3>
+        <canvas id="waveform-canvas" width="360" height="140"></canvas>
+        <div class="physics-data mono" id="waveform-desc">
+          • 縦軸: 正規化ひずみ h(t)/max|h|（単位なし）<br>
+          • 横軸: サンプル番号（dt=1/4096 s。f(t) が増加するので右へいくほど周期が短く見えます）<br>
+          • 中央のグレー線は基線。距離 D を大きくすると振幅が小さくなります（「重力波（チャープ）再計算」で反映）。
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="event-panel">
+      <h3 class="section-title orange">イベントログ</h3>
+      <div id="event-log"></div>
+    </div>
+  </div>
+
+  <script>
+  class CompactObjectSimulator {
+    constructor() {
+      // 物理定数（SI基準）
+      this.C = {
+        G: 6.67430e-11, c: 2.99792458e8, sigmaSB: 5.670374419e-8,
+        mp: 1.67262192369e-27, sigmaT: 6.6524587321e-29, Msun: 1.98847e30,
+        year: 365.25 * 86400, pi: Math.PI, ergPerW: 1e7, gaussPerTesla: 1e4,
+        kmPerM: 1e-3, pc: 3.085677581491367e16,
+      };
+
+      // THREE.js
+      this.scene = new THREE.Scene();
+      this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+      this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+      this.compactObject = null; this.accretionDisk = null; this.jetParticles = [];
+      this.pulsarBeams = null; this.binarySystem = null;
+      this.time = 0; this.isRunning = false; this.currentType = 'blackhole';
+
+      this.waveformData = []; this.eventLog = [];
+
+      this.physicsData = {
+        massMsun: 10, accRateMsunPerYr: 0.1, eta: 0.10, rinFactor: 6.0,
+        spinPeriodMs: 33, B12: 10.0, distanceMpc: 40,
+      };
+
+      this.setupRenderer();
+      this.createScene();
+      this.setupControls();
+      this.setupWaveformCanvas();
+      this.animate();
+      this.updatePhysics();
+      this.logEvent('システム起動','シミュレーター初期化完了（厳密計算版）');
+    }
+
+    setupRenderer() {
+      // 画面高さの約72%に縮小
+      this._heightFactor = 0.72;
+      this.renderer.setSize(window.innerWidth, Math.floor(window.innerHeight * this._heightFactor));
+      this.renderer.setClearColor(0x000005, 1);
+      document.getElementById('container').appendChild(this.renderer.domElement);
+
+      this.camera.position.set(30, 20, 30);
+      this.camera.lookAt(0,0,0);
+
+      // 星空
+      const starGeometry = new THREE.BufferGeometry();
+      const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.3, transparent: true, opacity: 0.8 });
+      const starVertices = [];
+      for (let i=0;i<15000;i++){ const x=(Math.random()-0.5)*2000; const y=(Math.random()-0.5)*2000; const z=(Math.random()-0.5)*2000; starVertices.push(x,y,z); }
+      starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+      const stars = new THREE.Points(starGeometry, starMaterial); this.scene.add(stars);
+
+      // リサイズ
+      window.addEventListener('resize', ()=>{
+        this.camera.aspect = window.innerWidth / Math.floor(window.innerHeight * (this._heightFactor || 0.72));
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, Math.floor(window.innerHeight * (this._heightFactor || 0.72)));
+      });
+    }
+
+    createScene(){
+      const ambientLight = new THREE.AmbientLight(0x404040, 0.12); this.scene.add(ambientLight);
+      this.createCompactObject();
+    }
+
+    createCompactObject(){
+      if (this.compactObject) this.scene.remove(this.compactObject);
+      if (this.accretionDisk) this.scene.remove(this.accretionDisk);
+      if (this.pulsarBeams) this.pulsarBeams.forEach(b=>this.scene.remove(b));
+      if (this.binarySystem) { this.binarySystem.forEach(s=>this.scene.remove(s)); this.binarySystem=null; }
+
+      const type = this.currentType;
+      if (type==='blackhole'){ this.createBlackHole(); this.createAccretionDisk(); }
+      else if (type==='neutronstar'){ this.createNeutronStar(); this.createPulsarBeam(); }
+      else if (type==='whitedwarf'){ this.createWhiteDwarf(); }
+      else if (type==='merger'){ this.createBinarySystem(); }
+    }
+
+    createBlackHole(){
+      const {G,c,Msun,kmPerM} = this.C; const M = this.physicsData.massMsun*Msun;
+      const Rs_m = 2*G*M/(c*c); const Rs_km = Rs_m*kmPerM;
+      const radius = Math.max(0.5, Rs_km/100);
+      const geo = new THREE.SphereGeometry(radius,32,32);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.92 });
+      this.compactObject = new THREE.Mesh(geo,mat); this.scene.add(this.compactObject);
+      const photonSphere = new THREE.Mesh(new THREE.SphereGeometry(radius*1.5,32,32), new THREE.MeshBasicMaterial({ color: 0x444444, transparent: true, opacity: 0.2, wireframe: true }));
+      this.scene.add(photonSphere);
+      this.logEvent('ブラックホール生成', `M=${this.physicsData.massMsun.toFixed(2)} M☉, Rs=${Rs_km.toFixed(2)} km`);
+    }
+
+    createAccretionDisk(){
+      const diskGeometry = new THREE.RingGeometry(2, 12, 64, 1);
+      const diskMaterial = new THREE.MeshBasicMaterial({ color: 0xff4500, transparent: true, opacity: 0.65, side: THREE.DoubleSide });
+      this.accretionDisk = new THREE.Mesh(diskGeometry, diskMaterial); this.accretionDisk.rotation.x = Math.PI/2; this.scene.add(this.accretionDisk);
+      const jetGeometry = new THREE.CylinderGeometry(0.2,1,20,12);
+      const jetMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.6 });
+      const jet1 = new THREE.Mesh(jetGeometry, jetMaterial); jet1.position.y = 10;
+      const jet2 = new THREE.Mesh(jetGeometry, jetMaterial); jet2.position.y = -10; jet2.rotation.z = Math.PI;
+      this.scene.add(jet1); this.scene.add(jet2);
+    }
+
+    createNeutronStar(){
+      const radius = 1.2;
+      const geo = new THREE.SphereGeometry(radius, 32, 32);
+      const mat = new THREE.MeshPhongMaterial({ color: 0xaaaaff, shininess: 100, emissive: 0x222244 });
+      this.compactObject = new THREE.Mesh(geo, mat); this.scene.add(this.compactObject);
+      const light = new THREE.PointLight(0xffffff, 2, 50); light.position.set(0,0,0); this.scene.add(light);
+      this.logEvent('中性子星生成','R≈12 km, 典型密度~10^15 g/cm^3');
+    }
+
+    createPulsarBeam(){
+      const geo = new THREE.ConeGeometry(1,25,12); const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.4 });
+      const b1 = new THREE.Mesh(geo,mat); b1.position.set(0,12.5,0);
+      const b2 = new THREE.Mesh(geo,mat); b2.position.set(0,-12.5,0); b2.rotation.z = Math.PI;
+      this.scene.add(b1); this.scene.add(b2); this.pulsarBeams=[b1,b2];
+    }
+
+    createWhiteDwarf(){
+      const radius = 0.8; const geo = new THREE.SphereGeometry(radius,32,32);
+      const mat = new THREE.MeshPhongMaterial({ color: 0xffffaa, shininess: 50, emissive: 0x444422 });
+      this.compactObject = new THREE.Mesh(geo, mat); this.scene.add(this.compactObject);
+      this.logEvent('白色矮星生成', `M=${this.physicsData.massMsun.toFixed(2)} M☉`);
+    }
+
+    createBinarySystem(){
+      const ns1 = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 20), new THREE.MeshPhongMaterial({ color: 0x4444ff, emissive: 0x111144 }));
+      const ns2 = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 20), new THREE.MeshPhongMaterial({ color: 0xff4444, emissive: 0x441111 }));
+      ns1.position.set(-3,0,0); ns2.position.set(3,0,0);
+      this.scene.add(ns1); this.scene.add(ns2); this.binarySystem=[ns1,ns2];
+      this.logEvent('連星系生成','中性子星連星の厳密GWモード');
+    }
+
+    setupControls(){
+      const el = {
+        objectType: document.getElementById('objectType'),
+        mass: document.getElementById('mass'), massValue: document.getElementById('massValue'),
+        accretionRate: document.getElementById('accretionRate'), accretionValue: document.getElementById('accretionValue'),
+        radiativeEff: document.getElementById('radiativeEff'), etaValue: document.getElementById('etaValue'),
+        rinFactor: document.getElementById('rinFactor'), rinValue: document.getElementById('rinValue'),
+        spinPeriod: document.getElementById('spinPeriod'), spinValue: document.getElementById('spinValue'),
+        magneticField: document.getElementById('magneticField'), magneticValue: document.getElementById('magneticValue'),
+        distanceMpc: document.getElementById('distanceMpc'), distValue: document.getElementById('distValue'),
+        start: document.getElementById('startSimulation'), stop: document.getElementById('stopSimulation'), reset: document.getElementById('resetSimulation'),
+        grb: document.getElementById('generateGRB'), gw: document.getElementById('detectGW'), exportData: document.getElementById('exportData')
+      };
+      el.objectType.addEventListener('change', (e)=>{ this.currentType=e.target.value; this.createCompactObject(); this.updatePhysics(); this.logEvent('天体変更', e.target.selectedOptions[0].text+'に変更'); });
+      el.mass.addEventListener('input',(e)=>{ this.physicsData.massMsun=parseFloat(e.target.value); el.massValue.textContent=`${this.physicsData.massMsun.toFixed(1)} M☉`; this.updatePhysics(); });
+      el.accretionRate.addEventListener('input',(e)=>{ this.physicsData.accRateMsunPerYr=parseFloat(e.target.value); el.accretionValue.textContent=this.physicsData.accRateMsunPerYr.toFixed(2); this.updatePhysics(); });
+      el.radiativeEff.addEventListener('input',(e)=>{ this.physicsData.eta=parseFloat(e.target.value); el.etaValue.textContent=this.physicsData.eta.toFixed(2); this.updatePhysics(); });
+      el.rinFactor.addEventListener('input',(e)=>{ this.physicsData.rinFactor=parseFloat(e.target.value); el.rinValue.textContent=this.physicsData.rinFactor.toFixed(1); this.updatePhysics(); });
+      el.spinPeriod.addEventListener('input',(e)=>{ this.physicsData.spinPeriodMs=parseInt(e.target.value); el.spinValue.textContent=`${this.physicsData.spinPeriodMs} ms`; this.updatePhysics(); });
+      el.magneticField.addEventListener('input',(e)=>{ this.physicsData.B12=parseFloat(e.target.value); el.magneticValue.textContent=this.physicsData.B12.toFixed(1); this.updatePhysics(); });
+      el.distanceMpc.addEventListener('input',(e)=>{ this.physicsData.distanceMpc=parseFloat(e.target.value); el.distValue.textContent=this.physicsData.distanceMpc.toFixed(0); this.updateWaveformDescription(); });
+
+      el.start.addEventListener('click',()=>{ this.isRunning=true; this.logEvent('シミュレーション','開始'); });
+      el.stop.addEventListener('click',()=>{ this.isRunning=false; this.logEvent('シミュレーション','停止'); });
+      el.reset.addEventListener('click',()=>{ this.time=0; this.isRunning=false; this.waveformData=[]; this.createCompactObject(); this.logEvent('シミュレーション','リセット'); });
+      el.grb.addEventListener('click',()=>this.generateGRB());
+      el.gw.addEventListener('click',()=>this.simulateGravitationalWave(true));
+      el.exportData.addEventListener('click',()=>this.exportSimulationData());
+
+      // キーボード
+      document.addEventListener('keydown',(e)=>{
+        switch(e.code){
+          case 'Space': e.preventDefault(); this.isRunning=!this.isRunning; this.logEvent('キーボード', this.isRunning? '開始(空白)': '停止(空白)'); break;
+          case 'KeyG': this.simulateGravitationalWave(true); break;
+          case 'KeyB': this.generateGRB(); break;
+          case 'KeyR': this.time=0; this.waveformData=[]; this.createCompactObject(); this.logEvent('キーボード','Rでリセット'); break;
+        }
+      });
+    }
+
+    setupWaveformCanvas(){ this.waveCanvas=document.getElementById('waveform-canvas'); this.waveCtx=this.waveCanvas.getContext('2d'); }
+
+    updateWaveformDescription(){
+      const desc = document.getElementById('waveform-desc');
+      if (!desc) return;
+      const D = this.physicsData.distanceMpc;
+      const Mc = this.lastMc ? (this.lastMc/this.C.Msun).toFixed(2) : '—';
+      const fISCO = this.lastGWFisco ? this.lastGWFisco.toFixed(0) : '—';
+      const maxAbs = (typeof this.lastGWMaxAbs==='number') ? this.lastGWMaxAbs.toExponential(2) : '—';
+      desc.innerHTML =
+        `• 縦軸: 正規化ひずみ h(t)/max|h|（D=${D.toFixed(0)} Mpc。未規格化のピーク ~ ${maxAbs}）<br>`+
+        `• 横軸: サンプル（dt=${(1/4096).toFixed(4)} s）。df/dt ∝ f^{11/3} により右ほど周期が短い<br>`+
+        `• チャープ質量 Mc=${Mc} M☉、終端周波数の目安 f_ISCO≈${fISCO} Hz`;
+    }
+
+    // ============ 厳密物理の計算と表示 ============
+    updatePhysics(){
+      const P = this.physicsData; const C = this.C; const M = P.massMsun*C.Msun;
+      const Rs_m = 2*C.G*M/(C.c*C.c); const Rg_m = C.G*M/(C.c*C.c); const Rs_km = Rs_m * C.kmPerM;
+
+      const Mdot_SI = P.accRateMsunPerYr * C.Msun / C.year;
+      const L_Edd_W = 4*C.pi*C.G*M*C.mp*C.c / C.sigmaT;
+      const L_Edd_erg = L_Edd_W * C.ergPerW;
+      const L_acc_W = P.eta * Mdot_SI * C.c * C.c;
+      const L_acc_erg = L_acc_W * C.ergPerW;
+
+      const rin = P.rinFactor * Rg_m; const rout = 1000 * Rg_m;
+      const TmaxK = (()=>{
+        let tmax=0; let rAtMax=rin; const sigma=C.sigmaSB; const G=C.G; const Mdot=Mdot_SI; const Mkg=M;
+        for(let i=0;i<400;i++){
+          const r = rin + (rout-rin)*i/399;
+          const base = (3*G*Mkg*Mdot)/(8*C.pi*sigma*Math.pow(r,3));
+          const f = (1 - Math.sqrt(rin/r)); if (f<=0) continue;
+          const T = Math.pow(base*f, 0.25);
+          if (T>tmax){ tmax=T; rAtMax=r; }
+        }
+        this.lastDiskTmaxR = rAtMax; return tmax;
+      })();
+
+      const Pspin = P.spinPeriodMs/1000;
+      const Omega = 2*C.pi/Pspin;
+      const Rns = 12e3;
+      const Bs_T = P.B12*1e12 / C.gaussPerTesla;
+      const mu_SI = Bs_T * Math.pow(Rns,3);
+      const Lsd_W = (2/3) * Math.pow(mu_SI,2) * Math.pow(Omega,4) / Math.pow(C.c,3);
+      const Rlc_m = C.c / Omega;
+
+      const html = `
+        <div class="physics-data mono">
+          <div><span class="cyan">Schwarzschild半径 Rs:</span> ${(Rs_km).toFixed(3)} km</div>
+          <div><span class="cyan">重力半径 Rg=GM/c²:</span> ${(Rg_m*C.kmPerM).toFixed(3)} km</div>
+        </div>
+        <div class="physics-data mono">
+          <div><span class="red">Eddington光度 L_Edd:</span> ${(L_Edd_erg).toExponential(3)} erg/s</div>
+          <div><span class="red">降着光度 L_acc=ηṀc²:</span> ${(L_acc_erg).toExponential(3)} erg/s (η=${P.eta.toFixed(2)})</div>
+          <div><span class="orange">Ṁ:</span> ${(Mdot_SI).toExponential(3)} kg/s</div>
+          <div><span class="orange">ディスク内縁 r_in:</span> ${(P.rinFactor).toFixed(1)} ×GM/c² = ${(rin*C.kmPerM).toFixed(2)} km</div>
+          <div><span class="green">T_max(ディスク):</span> ${(TmaxK).toExponential(3)} K @ r≈${(this.lastDiskTmaxR*C.kmPerM).toFixed(1)} km</div>
+        </div>
+        <div class="physics-data mono">
+          <div><span class="cyan">パルサー周波数:</span> ${(1/Pspin).toFixed(2)} Hz</div>
+          <div><span class="cyan">ライトシリンダー R_L:</span> ${(Rlc_m*C.kmPerM).toFixed(2)} km</div>
+          <div><span class="red">スピンダウン光度 L_sd:</span> ${(Lsd_W*C.ergPerW).toExponential(3)} erg/s</div>
+          <div><span class="orange">表面磁場:</span> ${(P.B12*1e12).toExponential(3)} G</div>
+        </div>
+      `;
+      document.getElementById('physics-data').innerHTML = html;
+      this.updateWaveformDescription();
+    }
+
+    generateGRB(){
+      this.logEvent('ガンマ線バースト', `代表エネルギー ~10^52 erg, 持続 ${ (Math.random()*100+10).toFixed(0) } s`);
+      const flash = new THREE.Mesh(new THREE.SphereGeometry(50, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.28 }));
+      this.scene.add(flash); setTimeout(()=>this.scene.remove(flash), 2000);
+    }
+
+    // 連星GW（等質量近似）：df/dt=(96/5)π^{8/3}(G Mc/c^3)^{5/3} f^{11/3}, h(f)=4(GMc)^{5/3}(πf)^{2/3}/(c^4 D)
+    simulateGravitationalWave(fromButton=false){
+      const C=this.C; const P=this.physicsData; const Mtot = P.massMsun*C.Msun;
+      const m1 = 0.5*Mtot, m2 = 0.5*Mtot;
+      const Mc = Math.pow(m1*m2,3/5)/Math.pow(m1+m2,1/5);
+      const D = P.distanceMpc * 1e6 * C.pc;
+
+      const N=400; const dt=1/4096;
+      let f = 30; // Hz
+      const fISCO = (C.c**3)/(6**1.5 * C.pi * C.G * (m1+m2));
+      const data=[];
+      for(let i=0;i<N;i++){
+        const t=i*dt;
+        const K = (96/5) * Math.pow(C.pi, 8/3) * Math.pow(C.G*Mc/(C.c**3), 5/3);
+        const dfdt = K * Math.pow(f, 11/3);
+        f += dfdt*dt; if (!isFinite(f)) break; if (f>fISCO) break;
+        const h = (4 * Math.pow(C.G*Mc,5/3) * Math.pow(C.pi*f,2/3)) / (Math.pow(C.c,4) * D);
+        const damp = Math.exp(-t*0.5);
+        data.push( {t, h: h*damp*Math.sin(2*C.pi*f*t)} );
+      }
+      const maxAbs = data.reduce((m,p)=>Math.max(m,Math.abs(p.h)), 1e-30);
+      this.waveformData = data.map(p=>p.h/maxAbs);
+      this.lastGWMaxAbs = maxAbs;
+      this.lastGWFisco = fISCO;
+      this.lastMc = Mc;
+      this.updateWaveformDescription();
+      this.logEvent('重力波再計算', `Mc=${(Mc/C.Msun).toFixed(2)} M☉, f0=30Hz → fISCO≈${fISCO.toFixed(0)}Hz, D=${P.distanceMpc} Mpc`);
+    }
+
+    drawWaveform(){
+      const canvas=this.waveCanvas, ctx=this.waveCtx; ctx.clearRect(0,0,canvas.width,canvas.height);
+      // 中央線
+      ctx.strokeStyle = '#333'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
+      if (this.waveformData.length>0){
+        ctx.strokeStyle='#00ff88'; ctx.lineWidth=2; ctx.beginPath();
+        const step = canvas.width/this.waveformData.length;
+        this.waveformData.forEach((v,i)=>{ const x=i*step; const y=canvas.height/2 + v*55; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+        ctx.stroke();
+      }
+    }
+
+    animate(){
+      requestAnimationFrame(()=>this.animate());
+      if (this.isRunning){
+        this.time += 0.016;
+        if (this.accretionDisk) this.accretionDisk.rotation.z += 0.02;
+        if (this.pulsarBeams){ const rot = 2*Math.PI/(this.physicsData.spinPeriodMs/1000)*0.016; this.pulsarBeams.forEach(b=>b.rotation.y+=rot); }
+        if (this.binarySystem){
+          const phase=this.time*0.1; const r0=3;
+          const s1=this.binarySystem[0], s2=this.binarySystem[1];
+          s1.position.set(Math.cos(phase)*r0,0,Math.sin(phase)*r0);
+          s2.position.set(Math.cos(phase+Math.PI)*r0,0,(Math.sin(phase+Math.PI))*r0);
+        }
+        if (this.compactObject) this.compactObject.rotation.y += 0.01;
+        if (Math.random()<0.001) this.generateRandomEvent();
+      }
+      this.drawWaveform();
+      const radius=40; this.camera.position.x = Math.cos(this.time*0.1)*radius; this.camera.position.z = Math.sin(this.time*0.1)*radius; this.camera.lookAt(0,0,0);
+      this.renderer.render(this.scene,this.camera);
+    }
+
+    generateRandomEvent(){
+      const ev=[
+        {type:'X線フレア',desc:`輝度 ${(Math.random()*5+1).toFixed(2)}×`},
+        {type:'磁気圏活動',desc:'再結合による粒子加速'},
+        {type:'スターフレア',desc:'伴星からの質量放出増加'},
+        {type:'パルスグリッチ',desc:'スピンのステップ変化'},
+        {type:'QPO検出',desc:`ν≈${(Math.random()*50+10).toFixed(1)} Hz`}
+      ];
+      const e=ev[Math.floor(Math.random()*ev.length)]; this.logEvent(e.type,e.desc);
+    }
+
+    logEvent(type, description){
+      const timestamp = new Date().toLocaleTimeString('ja-JP');
+      this.eventLog.unshift({ timestamp, type, description }); if (this.eventLog.length>60) this.eventLog.pop();
+      const html = this.eventLog.map(e=>`<div class="event-log"><span class="event-time">[${e.timestamp}]</span> <strong>${e.type}:</strong> ${e.description}</div>`).join('');
+      document.getElementById('event-log').innerHTML = html;
+    }
+
+    exportSimulationData(){
+      const C=this.C, P=this.physicsData; const M=P.massMsun*C.Msun; const Rs=2*C.G*M/(C.c*C.c); const Rg=C.G*M/(C.c*C.c);
+      const Rin=P.rinFactor*Rg; const L_Edd=4*C.pi*C.G*M*C.mp*C.c/C.sigmaT; const Mdot=P.accRateMsunPerYr*C.Msun/C.year; const L_acc=P.eta*Mdot*C.c*C.c;
+      const data={
+        timestamp: new Date().toISOString(),
+        simulation_time: this.time,
+        object_type: this.currentType,
+        physics_parameters: {...this.physicsData},
+        derived: { Rs_m: Rs, Rg_m: Rg, Rin_m: Rin, L_Edd_W: L_Edd, L_acc_W: L_acc },
+        gw_waveform_norm: this.waveformData.slice(0,600),
+        events: this.eventLog.slice(0,12)
+      };
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`compact_object_simulation_precise_${Date.now()}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      this.logEvent('データ出力','厳密計算パラメータをJSONで出力');
+    }
+  }
+
+  window.addEventListener('load',()=>{ const sim=new CompactObjectSimulator(); });
+  </script>
+</body>
+</html>
