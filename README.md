@@ -1,0 +1,2 @@
+# Simple_Compact_Objects_Simulator
+シンプルなコンパクト天体の重力波検出シミュレーション
