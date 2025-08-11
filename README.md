@@ -1,7 +1,69 @@
-# Compact Objects Simulator（厳密計算版）
+# Simple Compact Objects Simulator 
+
+## Overview
+**Simple Compact Objects Simulator** is an interactive web application that visualizes the physics of compact objects (black holes, neutron stars, white dwarfs) and renders derived quantities and gravitational waveforms in real time. It uses Three.js for 3D rendering with a physics panel, a GW waveform panel, and an event log, so parameter updates are reflected instantly.
+
+---
+
+## Key Features
+- **3D Visualization** of compact objects and accretion disks (Three.js)  
+- **Physics Panel**:  
+  - Inputs: mass, accretion rate, spin, magnetic field, distance  
+  - Outputs: Schwarzschild radius, Eddington luminosity, accretion luminosity, disk $T_{\max}$ (updated live)  
+- **GW Chirp Panel**:  
+  - Equal-mass inspiral frequency evolution via numerical integration  
+  - Dynamic display of distance, chirp mass, ISCO frequency, and unnormalized peak amplitude  
+- **Event Log** for simulation updates and events  
+- **Optimized Layout**: physics (top-right) → waveform (below) → log (bottom). 3D canvas height reduced to ~72% to avoid overlap
+
+---
+
+## Theoretical Background
+### Black Holes
+- **Schwarzschild Radius**: $R_s = 2GM/c^2$  
+- **Eddington Luminosity**: $L_{\rm Edd} = 4\pi GM m_p c / \sigma_T$  
+- **Accretion Luminosity**: $L_{\rm acc} = \eta\,\dot M c^2$  
+- **Thin Disk Temperature** (Shakura–Sunyaev)
+
+### Neutron Stars
+- **Light Cylinder**: $R_L=c/\Omega$  
+- **Spin-down Luminosity** (magnetic dipole order)
+
+### Gravitational Waves (BNS)
+- **Chirp Mass**: $M_c=\frac{(m_1 m_2)^{3/5}}{(m_1+m_2)^{1/5}}$  
+- **Frequency Evolution**: $\dfrac{df}{dt}\propto f^{11/3}$  
+- **ISCO Frequency**: $f_{\rm ISCO}\approx \dfrac{c^3}{6^{3/2}\pi G (m_1+m_2)}$
+
+---
+
+## Installation & Usage
+1. Clone the repository  
+    ```bash
+    git clone https://github.com/username/compact-objects-simulator.git
+    cd compact-objects-simulator
+    ```
+2. Run a local web server  
+    ```bash
+    python3 -m http.server 8000
+    ```
+3. Open in your browser  
+    ```
+    http://localhost:8000
+    ```
+
+---
+
+## File Structure
+- `index.html`: main app  
+- `style.css`: layout & panels (overlap-free)  
+- `main.js`: Three.js rendering, physics, events  
+
+---
+
+# Simple Compact Objects Simulator
 
 ## 概要
-**Compact Objects Simulator（厳密計算版）**は、ブラックホール・中性子星・白色矮星などのコンパクト天体の物理パラメータと、それに基づく物理量や重力波波形をリアルタイムで可視化するインタラクティブWebアプリケーションです。Three.js による 3D 描画と、物理パネル・重力波パネル・イベントログを組み合わせ、パラメータ変更が即座に結果に反映されます。
+**Simple Compact Objects Simulator**は、ブラックホール・中性子星・白色矮星などのコンパクト天体の物理パラメータと、それに基づく物理量や重力波波形をリアルタイムで可視化するインタラクティブWebアプリケーションです。Three.js による 3D 描画と、物理パネル・重力波パネル・イベントログを組み合わせ、パラメータ変更が即座に結果に反映されます。
 
 ---
 
@@ -66,68 +128,6 @@
 - 高次 PN や IMRPhenom 系モデルでの重力波生成  
 - 検出器感度曲線の重ね合わせと SNR 概算  
 
-
----
-
-# Compact Objects Simulator (Precise Calculation Version)
-
-## Overview
-**Compact Objects Simulator (Precise Calculation Version)** is an interactive web application that visualizes the physics of compact objects (black holes, neutron stars, white dwarfs) and renders derived quantities and gravitational waveforms in real time. It uses Three.js for 3D rendering with a physics panel, a GW waveform panel, and an event log, so parameter updates are reflected instantly.
-
----
-
-## Key Features
-- **3D Visualization** of compact objects and accretion disks (Three.js)  
-- **Physics Panel**:  
-  - Inputs: mass, accretion rate, spin, magnetic field, distance  
-  - Outputs: Schwarzschild radius, Eddington luminosity, accretion luminosity, disk $T_{\max}$ (updated live)  
-- **GW Chirp Panel**:  
-  - Equal-mass inspiral frequency evolution via numerical integration  
-  - Dynamic display of distance, chirp mass, ISCO frequency, and unnormalized peak amplitude  
-- **Event Log** for simulation updates and events  
-- **Optimized Layout**: physics (top-right) → waveform (below) → log (bottom). 3D canvas height reduced to ~72% to avoid overlap
-
----
-
-## Theoretical Background
-### Black Holes
-- **Schwarzschild Radius**: $R_s = 2GM/c^2$  
-- **Eddington Luminosity**: $L_{\rm Edd} = 4\pi GM m_p c / \sigma_T$  
-- **Accretion Luminosity**: $L_{\rm acc} = \eta\,\dot M c^2$  
-- **Thin Disk Temperature** (Shakura–Sunyaev)
-
-### Neutron Stars
-- **Light Cylinder**: $R_L=c/\Omega$  
-- **Spin-down Luminosity** (magnetic dipole order)
-
-### Gravitational Waves (BNS)
-- **Chirp Mass**: $M_c=\frac{(m_1 m_2)^{3/5}}{(m_1+m_2)^{1/5}}$  
-- **Frequency Evolution**: $\dfrac{df}{dt}\propto f^{11/3}$  
-- **ISCO Frequency**: $f_{\rm ISCO}\approx \dfrac{c^3}{6^{3/2}\pi G (m_1+m_2)}$
-
----
-
-## Installation & Usage
-1. Clone the repository  
-    ```bash
-    git clone https://github.com/username/compact-objects-simulator.git
-    cd compact-objects-simulator
-    ```
-2. Run a local web server  
-    ```bash
-    python3 -m http.server 8000
-    ```
-3. Open in your browser  
-    ```
-    http://localhost:8000
-    ```
-
----
-
-## File Structure
-- `index.html`: main app  
-- `style.css`: layout & panels (overlap-free)  
-- `main.js`: Three.js rendering, physics, events  
 
 ---
 
