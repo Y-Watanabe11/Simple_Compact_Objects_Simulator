@@ -20,19 +20,26 @@
 
 ## Theoretical Background
 ### Black Holes
-- **Schwarzschild Radius**: $R_s = 2GM/c^2$  
-- **Eddington Luminosity**: $L_{\rm Edd} = 4\pi GM m_p c / \sigma_T$  
-- **Accretion Luminosity**: $L_{\rm acc} = \eta\,\dot M c^2$  
+- **Schwarzschild Radius**:  
+  $$R_s = \frac{2GM}{c^2}$$
+- **Eddington Luminosity**:  
+  $$L_{\rm Edd} = \frac{4\pi GM m_p c}{\sigma_T}$$
+- **Accretion Luminosity**:  
+  $$L_{\rm acc} = \eta\,\dot M c^2$$
 - **Thin Disk Temperature** (Shakura–Sunyaev)
 
 ### Neutron Stars
-- **Light Cylinder**: $R_L=c/\Omega$  
+- **Light Cylinder**:  
+  $$R_L = \frac{c}{\Omega}$$
 - **Spin-down Luminosity** (magnetic dipole order)
 
 ### Gravitational Waves (BNS)
-- **Chirp Mass**: $M_c=\frac{(m_1 m_2)^{3/5}}{(m_1+m_2)^{1/5}}$  
-- **Frequency Evolution**: $\dfrac{df}{dt}\propto f^{11/3}$  
-- **ISCO Frequency**: $f_{\rm ISCO}\approx \dfrac{c^3}{6^{3/2}\pi G (m_1+m_2)}$
+- **Chirp Mass**:  
+  $$M_c=\frac{(m_1 m_2)^{3/5}}{(m_1+m_2)^{1/5}}$$
+- **Frequency Evolution**:  
+  $$\frac{df}{dt}\propto f^{11/3}$$
+- **ISCO Frequency**:  
+  $$f_{\rm ISCO}\approx \frac{c^3}{6^{3/2}\pi G (m_1+m_2)}$$
 
 ---
 
@@ -48,15 +55,13 @@
     ```
 3. Open in your browser  
     ```
-    [http://localhost:8000](http://localhost:8000/compact_objects_sim_precise.html)
+    http://localhost:8000/compact_objects_sim_precise.html
     ```
 
 ---
 
 ## File Structure
-- `index.html`: main app  
-- `style.css`: layout & panels (overlap-free)  
-- `main.js`: Three.js rendering, physics, events  
+- **`compact_objects_sim_precise.html`** — Main application file containing HTML, CSS, and JavaScript.
 
 ---
 
@@ -65,6 +70,8 @@
 - Multi-temperature blackbody disk spectrum  
 - Higher-order PN & IMRPhenom-based GW models  
 - Detector sensitivity overlays & SNR estimates  
+
+---
 
 # Simple Compact Objects Simulator
 
@@ -88,19 +95,26 @@
 
 ## 理論的背景
 ### ブラックホール
-- **Schwarzschild 半径**: $R_s = 2GM/c^2$  
-- **Eddington 光度**: $L_{\rm Edd} = 4\pi GM m_p c / \sigma_T$  
-- **降着光度**: $L_{\rm acc} = \eta\,\dot M c^2$  
-- **薄い円盤の温度分布**（Shakura–Sunyaev）
+- **Schwarzschild 半径**:  
+  $$R_s = \frac{2GM}{c^2}$$
+- **Eddington 光度**:  
+  $$L_{\rm Edd} = \frac{4\pi GM m_p c}{\sigma_T}$$
+- **降着光度**:  
+  $$L_{\rm acc} = \eta\,\dot M c^2$$
+- **薄い円盤の温度分布**（Shakura–Sunyaev モデル）
 
 ### 中性子星
-- **ライトシリンダー半径**: $R_L = c/\Omega$  
+- **ライトシリンダー半径**:  
+  $$R_L = \frac{c}{\Omega}$$
 - **スピンダウン光度**（磁気双極子放射のオーダー）
 
 ### 重力波（連星中性子星）
-- **チャープ質量**: $M_c=\frac{(m_1 m_2)^{3/5}}{(m_1+m_2)^{1/5}}$  
-- **周波数進化**: $\dfrac{df}{dt} \propto f^{11/3}$  
-- **ISCO 周波数**: $f_{\rm ISCO} \approx \dfrac{c^3}{6^{3/2}\pi G (m_1+m_2)}$
+- **チャープ質量**:  
+  $$M_c=\frac{(m_1 m_2)^{3/5}}{(m_1+m_2)^{1/5}}$$
+- **周波数進化**:  
+  $$\frac{df}{dt} \propto f^{11/3}$$
+- **ISCO 周波数**:  
+  $$f_{\rm ISCO} \approx \frac{c^3}{6^{3/2}\pi G (m_1+m_2)}$$
 
 ---
 
@@ -116,15 +130,13 @@
     ```
 3. ブラウザで以下にアクセス  
     ```
-    [http://localhost:8000](http://localhost:8000/compact_objects_sim_precise.html)
+    http://localhost:8000/compact_objects_sim_precise.html
     ```
 
 ---
 
 ## ファイル構成
-- `index.html`：アプリ本体  
-- `style.css`：レイアウト、パネル配置（UI 重なり回避済み）  
-- `main.js`：Three.js 描画、物理計算、イベント処理  
+- **`compact_objects_sim_precise.html`** — HTML・CSS・JavaScriptを含むアプリ本体
 
 ---
 
@@ -133,6 +145,3 @@
 - 多温度黒体ディスクのスペクトル合成表示  
 - 高次 PN や IMRPhenom 系モデルでの重力波生成  
 - 検出器感度曲線の重ね合わせと SNR 概算  
-
----
-
